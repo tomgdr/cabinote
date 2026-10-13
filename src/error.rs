@@ -66,7 +66,7 @@ impl fmt::Display for CnError {
             CnError::AmbiguousTitle { title, matches } => {
                 write!(
                     f,
-                    "multiple memos have the title '{title}'; specify one by number (-n to open, -dn to delete):"
+                    "multiple memos have the title '{title}'; specify one by number (-on to open, -dn to delete):"
                 )?;
                 for (number, label) in matches {
                     write!(f, "\n  [{number}] {label}")?;

@@ -38,13 +38,13 @@ pub enum DrawerCommand {
 
 #[derive(Debug, PartialEq)]
 pub enum MemoCommand {
-    // cn memo <title>
+    // -o <title>
     OpenByTitle(String),
-    // -n <number>(番号は1始まり)
+    // -on <number>(番号は1始まり)
     OpenByNumber(usize),
     // -l
     List,
-    // -a
+    // cn memo / -a
     Add,
     // -e
     Editor,
@@ -60,7 +60,7 @@ pub enum CliError {
     UnknownCommand(String),
     // 知らないオプション(cn memo -x)
     UnknownOption(String),
-    // 値が必要なオプションに値が無い(中身はオプション名。タイトルが空のときは "<title>")
+    // 値が必要なオプションに値が無い(中身はオプション名)
     MissingValue(String),
     // 番号が不正(数字でない、または0)。中身は入力された文字列
     InvalidNumber(String),
@@ -70,8 +70,6 @@ pub enum CliError {
     ConflictingOptions,
     // 引数がUTF-8として読めない(main.rs が引数を文字列にするときに使う)
     NotUnicode,
-    // オプションもタイトルも無い(中身はコマンド名。cn memo のみ)
-    MissingOption(&'static str),
 }
 
 impl fmt::Display for CliError {
@@ -86,9 +84,6 @@ impl fmt::Display for CliError {
             CliError::UnexpectedArgument(value) => write!(f, "unexpected argument: {value}"),
             CliError::ConflictingOptions => write!(f, "only one option can be given at a time"),
             CliError::NotUnicode => write!(f, "arguments must be valid UTF-8"),
-            CliError::MissingOption(command) => {
-                write!(f, "'cn {command}' requires an option or a title")
-            }
         }
     }
 }
@@ -151,10 +146,10 @@ fn parse_drawer(rest: &[String]) -> Result<Command, CliError> {
     Ok(Command::Drawer(command))
 }
 
-// cn memo の後ろの引数を解析する。無ければ MissingOption。
+// cn memo の後ろの引数を解析する。無ければ新規作成(-a と同じ)。
 fn parse_memo(rest: &[String]) -> Result<Command, CliError> {
     let Some(first) = rest.first() else {
-        return Err(CliError::MissingOption("memo"));
+        return Ok(Command::Memo(MemoCommand::Add));
     };
     let values = &rest[1..];
     let command = match first.as_str() {
@@ -170,18 +165,13 @@ fn parse_memo(rest: &[String]) -> Result<Command, CliError> {
             no_more(values)?;
             MemoCommand::Editor
         }
-        "-n" => MemoCommand::OpenByNumber(parse_number(&single_value(first, values)?)?),
+        "-o" => MemoCommand::OpenByTitle(single_value(first, values)?),
+        "-on" => MemoCommand::OpenByNumber(parse_number(&single_value(first, values)?)?),
         "-d" => MemoCommand::DeleteByTitle(single_value(first, values)?),
         "-dn" => MemoCommand::DeleteByNumber(parse_number(&single_value(first, values)?)?),
         _ if first.starts_with('-') => return Err(CliError::UnknownOption(first.clone())),
-        // "-" で始まらない最初の引数はタイトル
-        _ if first.is_empty() => return Err(CliError::MissingValue("<title>".to_string())),
-        _ => {
-            if let Some(extra) = values.first() {
-                return Err(CliError::UnexpectedArgument(extra.clone()));
-            }
-            MemoCommand::OpenByTitle(first.clone())
-        }
+        // タイトルだけの指定(cn memo <title>)は受け付けない。開くには -o が要る
+        _ => return Err(CliError::UnexpectedArgument(first.clone())),
     };
     Ok(Command::Memo(command))
 }

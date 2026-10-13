@@ -22,8 +22,9 @@ cn drawer:
   cn drawer -dn <number>     Delete a drawer by number
 
 cn memo:
-  cn memo <title>            Open a memo by title
-  cn memo -n <number>        Open a memo by number
+  cn memo                    Create a new memo and open it (same as -a)
+  cn memo -o <title>         Open a memo by title
+  cn memo -on <number>       Open a memo by number
   cn memo -l                 List memos
   cn memo -a                 Create a new memo and open it
   cn memo -e                 Show the editor used to open memos
